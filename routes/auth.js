@@ -1,3 +1,4 @@
+// ==================== CREATE FILE: routes/auth.js ====================
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
@@ -6,44 +7,62 @@ const {
   login, 
   forgotPassword, 
   resetPassword,
-  logout 
+  logout,
+  getMe 
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
-// Register route with validation
-router.post(
-  '/register',
-  [
-    body('username')
-      .trim()
-      .isLength({ min: 3 })
-      .withMessage('Username must be at least 3 characters'),
-    body('email')
-      .isEmail()
-      .normalizeEmail({ gmail_remove_dots: false })
-      .withMessage('Please provide a valid email'),
-    body('password')
-      .isLength({ min: 6 })
-      .withMessage('Password must be at least 6 characters'),
-    body('phone')
-      .optional()
-      .trim()
-      .matches(/^[0-9]{10}$/)
-      .withMessage('Phone number must be 10 digits'),
-  ],
-  register
-);
+// Validation rules
+const registerValidation = [
+  body('username')
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be 3-30 characters')
+    .matches(/^[a-zA-Z0-9_]+$/)
+    .withMessage('Username can only contain letters, numbers, and underscores'),
+  body('email')
+    .isEmail()
+    .normalizeEmail({ gmail_remove_dots: false })
+    .withMessage('Please provide a valid email'),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters'),
+  body('phone')
+    .optional()
+    .trim()
+    .matches(/^[0-9]{10}$/)
+    .withMessage('Phone number must be 10 digits'),
+];
 
-// Login route
-router.post('/login', login);
+const loginValidation = [
+  body('identifier')
+    .trim()
+    .notEmpty()
+    .withMessage('Username or email is required'),
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required'),
+];
 
-// Forgot password route
-router.post('/forgot-password', forgotPassword);
+const forgotPasswordValidation = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email'),
+];
 
-// Reset password route
-router.put('/reset-password/:resetToken', resetPassword);
+const resetPasswordValidation = [
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters'),
+];
 
-// Logout route (protected)
+// Routes
+router.post('/register', registerValidation, register);
+router.post('/login', loginValidation, login);
+router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
+router.put('/reset-password/:resetToken', resetPasswordValidation, resetPassword);
 router.post('/logout', protect, logout);
+router.get('/me', protect, getMe);
 
 module.exports = router;
