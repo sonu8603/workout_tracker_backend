@@ -267,7 +267,7 @@ const login = async (req, res) => {
 };
 
 /**
- * @desc    Forgot password - Send reset email
+ * @desc    Forgot password - Send OTP
  * @route   POST /api/auth/forgot-password
  * @access  Public
  */
@@ -292,7 +292,7 @@ const forgotPassword = async (req, res) => {
       // Don't reveal if user exists (security best practice)
       return res.status(200).json({
         success: true,
-        message: 'If an account with that email exists, a password reset link has been sent.',
+        message: 'If an account with that email exists, an OTP has been sent.',
       });
     }
 
@@ -300,16 +300,23 @@ const forgotPassword = async (req, res) => {
     if (!user.isActive) {
       return res.status(200).json({
         success: true,
-        message: 'If an account with that email exists, a password reset link has been sent.',
+        message: 'If an account with that email exists, an OTP has been sent.',
       });
     }
 
-    // Generate reset token
-    const resetToken = user.getResetPasswordToken();
-    await user.save({ validateBeforeSave: false });
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Hash OTP before storing (security best practice)
+    const hashedOTP = crypto
+      .createHash('sha256')
+      .update(otp)
+      .digest('hex');
 
-    // Create reset URL
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    // Store hashed OTP and expiry (10 minutes)
+    user.resetPasswordToken = hashedOTP;
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save({ validateBeforeSave: false });
 
     // Email HTML template
     const html = `
@@ -347,20 +354,19 @@ const forgotPassword = async (req, res) => {
           }
           .content { 
             padding: 40px 30px; 
+            text-align: center;
           }
-          .button { 
-            display: inline-block; 
-            background: #667eea; 
-            color: white !important; 
-            padding: 14px 35px; 
-            text-decoration: none; 
-            border-radius: 6px; 
-            margin: 20px 0;
-            font-weight: 600;
-            transition: background 0.3s;
-          }
-          .button:hover {
-            background: #5568d3;
+          .otp-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 42px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            padding: 25px;
+            margin: 30px auto;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
           }
           .warning {
             background: #fff3cd;
@@ -368,6 +374,7 @@ const forgotPassword = async (req, res) => {
             padding: 15px;
             margin: 20px 0;
             border-radius: 4px;
+            text-align: left;
           }
           .footer { 
             text-align: center; 
@@ -386,25 +393,27 @@ const forgotPassword = async (req, res) => {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🔒 Password Reset Request</h1>
+            <h1>🔒 Password Reset OTP</h1>
           </div>
           <div class="content">
             <p>Hi <strong>${user.username}</strong>,</p>
-            <p>You requested to reset your password. Click the button below to create a new password:</p>
-            <div style="text-align: center;">
-              <a href="${resetUrl}" class="button">Reset Password</a>
+            <p>You requested to reset your password. Use the OTP below:</p>
+            
+            <div class="otp-box">
+              ${otp}
             </div>
+            
             <div class="warning">
               <strong>⚠️ Important:</strong>
               <ul style="margin: 10px 0;">
-                <li>This link will <span class="expiry">expire in 10 minutes</span></li>
-                <li>For security, never share this link with anyone</li>
+                <li>This OTP will <span class="expiry">expire in 10 minutes</span></li>
+                <li>Never share this OTP with anyone</li>
                 <li>If you didn't request this, please ignore this email</li>
               </ul>
             </div>
-            <p style="color: #666; font-size: 14px;">
-              If the button doesn't work, copy and paste this link into your browser:<br>
-              <code style="background: #f4f4f4; padding: 8px; display: inline-block; margin-top: 10px; border-radius: 4px; word-break: break-all;">${resetUrl}</code>
+            
+            <p style="color: #666; font-size: 14px; margin-top: 30px;">
+              Enter this OTP in the app to reset your password.
             </p>
           </div>
           <div class="footer">
@@ -420,7 +429,7 @@ const forgotPassword = async (req, res) => {
     try {
       const emailSent = await sendEmail({
         email: user.email,
-        subject: 'Password Reset Request - Workout Tracker',
+        subject: 'Password Reset OTP - Workout Tracker',
         html,
       });
 
@@ -428,11 +437,11 @@ const forgotPassword = async (req, res) => {
         throw new Error('Email sending failed');
       }
 
-      console.log(`📧 Password reset email sent to: ${email}`);
+      console.log(`📧 OTP sent to: ${email}`);
 
       res.status(200).json({
         success: true,
-        message: 'Password reset email sent successfully',
+        message: 'OTP sent to your email successfully',
       });
 
     } catch (emailError) {
@@ -459,16 +468,20 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Verify OTP and reset password
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
 const resetPassword = async (req, res) => {
   try {
-    const { newPassword } = req.body;
-    const { resetToken } = req.params;
+    const { email, otp, newPassword } = req.body;
 
     // Validate input
-    if (!newPassword) {
+    if (!email || !otp || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a new password',
+        message: 'Please provide email, OTP, and new password',
       });
     }
 
@@ -479,23 +492,24 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Hash the token to compare with DB
-    const hashedToken = crypto
+    // Hash the OTP to compare with DB
+    const hashedOTP = crypto
       .createHash('sha256')
-      .update(resetToken)
+      .update(otp.toString().trim())
       .digest('hex');
 
-    // Find user with valid token and not expired
+    // Find user with valid OTP and not expired
     const user = await User.findOne({
-      resetPasswordToken: hashedToken,
+      email: email.trim().toLowerCase(),
+      resetPasswordToken: hashedOTP,
       resetPasswordExpire: { $gt: Date.now() },
     });
 
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid or expired reset token. Please request a new password reset.',
-        code: 'INVALID_TOKEN'
+        message: 'Invalid or expired OTP',
+        code: 'INVALID_OTP'
       });
     }
 
