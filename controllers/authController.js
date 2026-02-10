@@ -167,15 +167,20 @@ const login = async (req, res) => {
       });
     }
 
-    // Check password
-    const isPasswordCorrect = await user.comparePassword(password);
-    console.log('🔍 Password correct:', isPasswordCorrect);
-
-    if (!isPasswordCorrect) {
-      console.log('❌ Password incorrect for user:', user.email);
-      return res.status(401).json({
+    // 🆕 Check if account is locked BEFORE password check
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      const remainingTime = Math.ceil((user.lockUntil - Date.now()) / 1000); // seconds
+      const remainingMinutes = Math.ceil(remainingTime / 60);
+      
+      console.log(`🔒 Account locked for ${remainingMinutes} more minutes`);
+      
+      return res.status(423).json({ // 423 = Locked
         success: false,
-        message: 'Invalid credentials',
+        message: `Account is locked. Please try again in ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`,
+        code: 'ACCOUNT_LOCKED',
+        lockUntil: user.lockUntil,
+        remainingSeconds: remainingTime,
+        remainingMinutes: remainingMinutes
       });
     }
 
@@ -186,6 +191,52 @@ const login = async (req, res) => {
         message: 'Account is deactivated. Please contact support.',
         code: 'ACCOUNT_DEACTIVATED'
       });
+    }
+
+    // Check password
+    const isPasswordCorrect = await user.comparePassword(password);
+    console.log('🔍 Password correct:', isPasswordCorrect);
+
+    if (!isPasswordCorrect) {
+      console.log('❌ Password incorrect for user:', user.email);
+      
+      // Increment login attempts
+      await user.incLoginAttempts();
+      
+      // Reload user to get updated lock status
+      const updatedUser = await User.findById(user._id);
+      
+      // Check if account just got locked
+      if (updatedUser.lockUntil && updatedUser.lockUntil > Date.now()) {
+        const remainingTime = Math.ceil((updatedUser.lockUntil - Date.now()) / 1000);
+        const remainingMinutes = Math.ceil(remainingTime / 60);
+        
+        return res.status(423).json({
+          success: false,
+          message: `Too many failed attempts. Account locked for ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`,
+          code: 'ACCOUNT_LOCKED',
+          lockUntil: updatedUser.lockUntil,
+          remainingSeconds: remainingTime,
+          remainingMinutes: remainingMinutes
+        });
+      }
+      
+      // Show remaining attempts
+      const maxAttempts = 5;
+      const attemptsLeft = maxAttempts - updatedUser.loginAttempts;
+      
+      return res.status(401).json({
+        success: false,
+        message: attemptsLeft > 0 
+          ? `Invalid credentials. ${attemptsLeft} attempt${attemptsLeft > 1 ? 's' : ''} remaining.`
+          : 'Invalid credentials',
+        attemptsLeft: attemptsLeft > 0 ? attemptsLeft : 0
+      });
+    }
+
+    // Reset login attempts on successful login
+    if (user.loginAttempts > 0 || user.lockUntil) {
+      await user.resetLoginAttempts();
     }
 
     // Update last login
@@ -390,7 +441,7 @@ const forgotPassword = async (req, res) => {
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
 
-      console.error(' Email sending error:', emailError);
+      console.error('❌ Email sending error:', emailError);
 
       return res.status(500).json({
         success: false,
@@ -399,7 +450,7 @@ const forgotPassword = async (req, res) => {
     }
 
   } catch (error) {
-    console.error(' Forgot password error:', error);
+    console.error('❌ Forgot password error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error. Please try again later.',
@@ -407,7 +458,6 @@ const forgotPassword = async (req, res) => {
     });
   }
 };
-
 
 const resetPassword = async (req, res) => {
   try {
@@ -490,7 +540,7 @@ const logout = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(' Logout error:', error);
+    console.error('❌ Logout error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during logout',
@@ -498,8 +548,6 @@ const logout = async (req, res) => {
     });
   }
 };
-
-
 
 const getMe = async (req, res) => {
   try {
@@ -518,7 +566,6 @@ const getMe = async (req, res) => {
     });
 
   } catch (error) {
-   
     res.status(500).json({
       success: false,
       message: 'Server error',

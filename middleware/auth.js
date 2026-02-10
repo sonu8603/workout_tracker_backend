@@ -33,7 +33,7 @@ const protect = async (req, res, next) => {
 
     // 3. Verify JWT_SECRET exists
     if (!process.env.JWT_SECRET) {
-      console.error("❌ CRITICAL: JWT_SECRET is not defined in environment variables");
+      console.error(" CRITICAL: JWT_SECRET is not defined in environment variables");
       return res.status(500).json({ 
         success: false,
         message: "Server configuration error" 
@@ -83,7 +83,7 @@ const protect = async (req, res, next) => {
     if (decoded.exp) {
       const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
       if (expiresIn < 300 && process.env.NODE_ENV === 'development') {
-        console.warn(`⚠️ Token expiring soon (${Math.floor(expiresIn / 60)}min) for user: ${user.email}`);
+        console.warn(` Token expiring soon (${Math.floor(expiresIn / 60)}min) for user: ${user.email}`);
       }
     }
 
@@ -116,7 +116,7 @@ const protect = async (req, res, next) => {
     }
 
     // Log unexpected errors
-    console.error("❌ Auth Middleware Error:", error);
+    console.error(" Auth Middleware Error:", error);
 
     return res.status(500).json({ 
       success: false,

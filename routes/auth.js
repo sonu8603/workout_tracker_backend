@@ -47,7 +47,7 @@ const loginValidation = [
 const forgotPasswordValidation = [
   body('email')
     .isEmail()
-    .normalizeEmail()
+    .normalizeEmail({ gmail_remove_dots: false })
     .withMessage('Please provide a valid email'),
 ];
 
