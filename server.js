@@ -93,38 +93,30 @@ const apiLimiter = rateLimit({
 });
 
 app.use('/api/', apiLimiter);
-
 const authLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
+  windowMs: 10 * 60 * 1000,
   max: 5,
   skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
-  
-  // return actual remaining time
   handler: (req, res) => {
-    const resetTime = req.rateLimit.resetTime;
     const now = Date.now();
-    
-    // Calculate actual remaining time from rate limiter
-    const lockUntil = resetTime ? resetTime.getTime() : now + (10 * 60 * 1000);
-    const remainingMs = lockUntil - now;
-    const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
-    const remainingMinutes = Math.ceil(remainingSeconds / 60);
+    const lockTimeMs = Number(process.env.LOCK_TIME) || 10 * 60 * 1000;
+    const lockUntil = now + lockTimeMs;
+
+    const remainingSeconds = Math.floor((lockUntil - now) / 1000);
+    const remainingMinutes = Math.floor(remainingSeconds / 60);
 
     console.log(`🔒 Rate limit exceeded for ${req.ip}`);
-    console.log(`   - Lock until: ${new Date(lockUntil)}`);
-    console.log(`   - Remaining: ${remainingMinutes}m ${remainingSeconds % 60}s`);
+    console.log(`   - Remaining: ${remainingMinutes}m ${remainingSeconds % 60}s (${remainingSeconds} total seconds)`);
 
-    
     res.status(423).json({
       success: false,
       code: 'ACCOUNT_LOCKED',
-      message: `Too many authentication attempts. Please try again in ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`,
+      message: `Too many authentication attempts. Please try again in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}.`,
       lockUntil: lockUntil,
       remainingSeconds: remainingSeconds,
       remainingMinutes: remainingMinutes,
-      retryAfter: `${remainingMinutes} minutes`
     });
   }
 });
