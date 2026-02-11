@@ -6,6 +6,7 @@ const {
   register, 
   login, 
   forgotPassword, 
+   verifyOTP,
   resetPassword,
   logout,
   getMe 
@@ -51,6 +52,20 @@ const forgotPasswordValidation = [
     .withMessage('Please provide a valid email'),
 ];
 
+
+const verifyOTPValidation = [
+  body('email')
+    .isEmail()
+    .normalizeEmail({ gmail_remove_dots: false })
+    .withMessage('Please provide a valid email'),
+  body('otp')
+    .trim()
+    .isLength({ min: 6, max: 6 })
+    .withMessage('OTP must be 6 digits')
+    .isNumeric()
+    .withMessage('OTP must contain only numbers'),
+];
+
 //  Validation for OTP-based reset
 const resetPasswordValidation = [
   body('email')
@@ -72,6 +87,7 @@ const resetPasswordValidation = [
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
 router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
+router.post('/verify-otp', verifyOTPValidation, verifyOTP);  
 router.post('/reset-password', resetPasswordValidation, resetPassword);
 router.post('/logout', protect, logout);
 router.get('/me', protect, getMe);

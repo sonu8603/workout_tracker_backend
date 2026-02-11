@@ -468,27 +468,21 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+
 /**
- * @desc    Verify OTP and reset password
- * @route   POST /api/auth/reset-password
+ * @desc    Verify OTP (separate endpoint for validation)
+ * @route   POST /api/auth/verify-otp
  * @access  Public
  */
-const resetPassword = async (req, res) => {
+const verifyOTP = async (req, res) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const { email, otp } = req.body;
 
     // Validate input
-    if (!email || !otp || !newPassword) {
+    if (!email || !otp) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email, OTP, and new password',
-      });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters',
+        message: 'Please provide email and OTP',
       });
     }
 
@@ -513,7 +507,59 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Set new password (will be hashed by pre-save hook)
+    // OTP is valid ✅
+    console.log(`✅ OTP verified for: ${email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully',
+    });
+
+  } catch (error) {
+    console.error('❌ Verify OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again later.',
+      ...(process.env.NODE_ENV === 'development' && { error: error.message })
+    });
+  }
+};
+
+/**
+ * @desc     reset password
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
+const resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide email and new password',
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters',
+      });
+    }
+
+    const user = await User.findOne({
+      email: email.trim().toLowerCase(),
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Set new password
     user.password = newPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
@@ -536,6 +582,7 @@ const resetPassword = async (req, res) => {
     });
   }
 };
+
 
 const logout = async (req, res) => {
   try {
@@ -592,6 +639,7 @@ module.exports = {
   register,
   login,
   forgotPassword,
+   verifyOTP,
   resetPassword,
   logout,
   getMe,
