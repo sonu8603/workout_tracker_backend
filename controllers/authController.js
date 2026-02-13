@@ -492,16 +492,12 @@ const verifyOTP = async (req, res) => {
       });
     }
 
-    // OTP is valid ✅
-    console.log(`✅ OTP verified for: ${email}`);
-
     res.status(200).json({
       success: true,
       message: 'OTP verified successfully',
     });
 
   } catch (error) {
-    console.error('❌ Verify OTP error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error. Please try again later.',
