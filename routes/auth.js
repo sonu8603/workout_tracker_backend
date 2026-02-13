@@ -1,4 +1,4 @@
-// ==================== CREATE FILE: routes/auth.js ====================
+
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
@@ -6,12 +6,13 @@ const {
   register, 
   login, 
   forgotPassword, 
-   verifyOTP,
+  verifyOTP,
   resetPassword,
   logout,
   getMe 
 } = require('../controllers/authController');
-const { protect } = require('../middleware/auth');
+
+const { protect, refreshIfNeeded } = require('../middleware/auth');
 
 // Validation rules
 const registerValidation = [
@@ -52,7 +53,6 @@ const forgotPasswordValidation = [
     .withMessage('Please provide a valid email'),
 ];
 
-
 const verifyOTPValidation = [
   body('email')
     .isEmail()
@@ -66,7 +66,7 @@ const verifyOTPValidation = [
     .withMessage('OTP must contain only numbers'),
 ];
 
-//  Validation for OTP-based reset
+// Validation for OTP-based reset
 const resetPasswordValidation = [
   body('email')
     .isEmail()
@@ -83,13 +83,15 @@ const resetPasswordValidation = [
     .withMessage('Password must be at least 6 characters'),
 ];
 
-// Routes
+// ==================== PUBLIC ROUTES ====================
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
 router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
-router.post('/verify-otp', verifyOTPValidation, verifyOTP);  
+router.post('/verify-otp', verifyOTPValidation, verifyOTP);
 router.post('/reset-password', resetPasswordValidation, resetPassword);
-router.post('/logout', protect, logout);
-router.get('/me', protect, getMe);
+
+//        PROTECTED ROUTES
+router.post('/logout', protect, refreshIfNeeded, logout);
+router.get('/me', protect, refreshIfNeeded, getMe);
 
 module.exports = router;

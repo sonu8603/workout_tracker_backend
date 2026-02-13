@@ -26,7 +26,7 @@ const protect = async (req, res, next) => {
     if (!token) {
       return res.status(401).json({ 
         success: false,
-        message: "Access denied. Invalid token format.",
+        message: "Unauthorized access.",
         code: "INVALID_FORMAT"
       });
     }
@@ -94,7 +94,7 @@ const protect = async (req, res, next) => {
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({ 
         success: false,
-        message: "Token has expired. Please login again.",
+        message: "session has expired. Please login again.",
         code: "TOKEN_EXPIRED"
       });
     }
@@ -110,7 +110,7 @@ const protect = async (req, res, next) => {
     if (error.name === "NotBeforeError") {
       return res.status(401).json({ 
         success: false,
-        message: "Token not active yet.",
+        message: "Token not active yet. please try again later",
         code: "TOKEN_NOT_ACTIVE"
       });
     }
@@ -219,5 +219,5 @@ module.exports = {
   protect, 
   authorize, 
   optionalAuth,
-  refreshIfNeeded 
+  refreshIfNeeded,
 };

@@ -135,12 +135,8 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { identifier, password } = req.body;
-
-    console.log('🔍 Login attempt:', { identifier, hasPassword: !!password });
-
     // Validate input
     if (!identifier || !password) {
-      console.log('❌ Missing credentials');
       return res.status(400).json({
         success: false,
         message: 'Please provide username/email and password',
@@ -160,19 +156,16 @@ const login = async (req, res) => {
     console.log('🔍 User found:', user ? `${user.email} (${user.username})` : 'NO USER FOUND');
 
     if (!user) {
-      console.log('❌ No user found with identifier:', trimmedIdentifier);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
       });
     }
 
-    // 🆕 Check if account is locked BEFORE password check
+    //  Check if account is locked BEFORE password check
     if (user.lockUntil && user.lockUntil > Date.now()) {
       const remainingTime = Math.ceil((user.lockUntil - Date.now()) / 1000); // seconds
       const remainingMinutes = Math.ceil(remainingTime / 60);
-      
-      console.log(`🔒 Account locked for ${remainingMinutes} more minutes`);
       
       return res.status(423).json({ // 423 = Locked
         success: false,
@@ -195,11 +188,7 @@ const login = async (req, res) => {
 
     // Check password
     const isPasswordCorrect = await user.comparePassword(password);
-    console.log('🔍 Password correct:', isPasswordCorrect);
-
     if (!isPasswordCorrect) {
-      console.log('❌ Password incorrect for user:', user.email);
-      
       // Increment login attempts
       await user.incLoginAttempts();
       
@@ -246,9 +235,7 @@ const login = async (req, res) => {
     // Generate token
     const token = generateToken(user._id);
 
-    // Log success
-    console.log(`✅ User logged in: ${user.email} (ID: ${user._id})`);
-
+    // Login  success
     res.status(200).json({
       success: true,
       message: 'Login successful',
@@ -429,7 +416,7 @@ const forgotPassword = async (req, res) => {
     try {
       const emailSent = await sendEmail({
         email: user.email,
-        subject: 'Password Reset OTP - Workout Tracker',
+        subject: 'Password Reset OTP -  Fitmatrics',
         html,
       });
 
@@ -449,9 +436,7 @@ const forgotPassword = async (req, res) => {
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
-
-      console.error('❌ Email sending error:', emailError);
-
+    
       return res.status(500).json({
         success: false,
         message: 'Email could not be sent. Please try again later.',
@@ -459,7 +444,7 @@ const forgotPassword = async (req, res) => {
     }
 
   } catch (error) {
-    console.error('❌ Forgot password error:', error);
+    console.error(' Forgot password error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error. Please try again later.',
@@ -565,9 +550,7 @@ const resetPassword = async (req, res) => {
     user.resetPasswordExpire = undefined;
     user.passwordChangedAt = Date.now();
     await user.save();
-
-    console.log(`✅ Password reset successful for: ${user.email}`);
-
+    
     res.status(200).json({
       success: true,
       message: 'Password reset successfully. You can now login with your new password.',

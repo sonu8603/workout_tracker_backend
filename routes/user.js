@@ -2,6 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
+const { protect, refreshIfNeeded } = require('../middleware/auth');
+
 const { 
   getProfile, 
   updateProfile,
@@ -9,10 +11,10 @@ const {
   deleteAccount,
   getUserStats
 } = require('../controllers/userController');
-const { protect } = require('../middleware/auth');
 
-// All routes are protected
+
 router.use(protect);
+router.use(refreshIfNeeded);
 
 // Validation for profile update
 const updateProfileValidation = [
@@ -43,7 +45,7 @@ const updateProfileValidation = [
     .withMessage('New password must be at least 6 characters'),
 ];
 
-// Routes
+// ==================== ROUTES ====================
 router.get('/profile', getProfile);
 router.put('/profile', updateProfileValidation, updateProfile);
 router.put('/profile-image', updateProfileImage);
