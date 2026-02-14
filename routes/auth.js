@@ -83,6 +83,8 @@ const resetPasswordValidation = [
     .withMessage('Password must be at least 6 characters'),
 ];
 
+ 
+
 // ==================== PUBLIC ROUTES ====================
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);

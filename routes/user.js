@@ -45,11 +45,17 @@ const updateProfileValidation = [
     .withMessage('New password must be at least 6 characters'),
 ];
 
+ const deleteAccountValidation = [
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required to confirm account deletion')
+];
+
 // ==================== ROUTES ====================
 router.get('/profile', getProfile);
 router.put('/profile', updateProfileValidation, updateProfile);
 router.put('/profile-image', updateProfileImage);
-router.delete('/account', deleteAccount);
+router.post('/account', deleteAccountValidation, deleteAccount);
 router.get('/stats', getUserStats);
 
 module.exports = router;
