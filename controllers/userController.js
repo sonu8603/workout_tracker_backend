@@ -143,8 +143,6 @@ const updateProfile = async (req, res) => {
     // Remove password from response
     const updatedUser = user.toJSON();
 
-    console.log(`✅ Profile updated: ${user.email} (ID: ${user._id})`);
-
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully',

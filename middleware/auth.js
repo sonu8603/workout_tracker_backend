@@ -192,24 +192,44 @@ const optionalAuth = async (req, res, next) => {
  */
 const refreshIfNeeded = async (req, res, next) => {
   try {
-    if (req.token) {
-      const decoded = jwt.verify(req.token, process.env.JWT_SECRET);
-      const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
+    if (!req.token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(req.token, process.env.JWT_SECRET);
+    const now = Math.floor(Date.now() / 1000);
+    const expiresIn = decoded.exp - now;
+    
+    // ✅ Refresh if token expires in less than 2 days (172800 seconds)
+    const refreshThreshold = 2 * 24 * 60 * 60;
+    
+    if (expiresIn < refreshThreshold && expiresIn > 0 && req.user) {
+      const newToken = jwt.sign(
+        { 
+          id: req.user._id,
+          iat: now
+        },
+        process.env.JWT_SECRET,
+        { 
+          expiresIn: process.env.JWT_EXPIRE || '7d',
+          algorithm: 'HS256'
+        }
+      );
       
-      // If token expires in less than 1 day, send new token in response header
-      if (expiresIn < 86400 && req.user) {
-        const newToken = jwt.sign(
-          { id: req.user._id },
-          process.env.JWT_SECRET,
-          { expiresIn: process.env.JWT_EXPIRE || '7d' }
-        );
-        
-        res.setHeader('X-New-Token', newToken);
+      // ✅ Set both header variations for compatibility
+      res.setHeader('X-New-Token', newToken);
+      res.setHeader('x-new-token', newToken);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔄 Token refreshed for user: ${req.user.email}`);
+        console.log(`   Old token expires in: ${Math.floor(expiresIn / 3600)}h`);
+        console.log(`   New token valid for: ${process.env.JWT_EXPIRE || '7d'}`);
       }
     }
   } catch (error) {
-    // Don't block request if refresh fails
-    console.warn('⚠️ Token refresh failed:', error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('⚠️ Token refresh failed:', error.message);
+    }
   }
   
   next();
