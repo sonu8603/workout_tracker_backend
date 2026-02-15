@@ -110,7 +110,7 @@ const protect = async (req, res, next) => {
     if (error.name === "NotBeforeError") {
       return res.status(401).json({ 
         success: false,
-        message: "Token not active yet. please try again later",
+        message: "session not active yet. please try again later",
         code: "TOKEN_NOT_ACTIVE"
       });
     }
@@ -200,7 +200,7 @@ const refreshIfNeeded = async (req, res, next) => {
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = decoded.exp - now;
     
-    // ✅ Refresh if token expires in less than 2 days (172800 seconds)
+    //  Refresh if token expires in less than 2 days (172800 seconds)
     const refreshThreshold = 2 * 24 * 60 * 60;
     
     if (expiresIn < refreshThreshold && expiresIn > 0 && req.user) {
@@ -216,7 +216,7 @@ const refreshIfNeeded = async (req, res, next) => {
         }
       );
       
-      // ✅ Set both header variations for compatibility
+      // Set both header variations for compatibility
       res.setHeader('X-New-Token', newToken);
       res.setHeader('x-new-token', newToken);
       

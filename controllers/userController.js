@@ -150,7 +150,7 @@ const updateProfile = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Update profile error:', error);
+    console.error(' Update profile error:', error);
 
     // Handle duplicate key errors
     if (error.code === 11000) {
@@ -198,7 +198,7 @@ const updateProfileImage = async (req, res) => {
     user.profileImage = profileImage;
     await user.save({ validateBeforeSave: false });
 
-    console.log(`✅ Profile image updated: ${user.email}`);
+    console.log(` Profile image updated: ${user.email}`);
 
     res.status(200).json({
       success: true,
@@ -221,7 +221,61 @@ const updateProfileImage = async (req, res) => {
  * @route   DELETE /api/user/account
  * @access  Private
  */
-const deleteAccount = async (req, res) => {
+// const deleteAccount = async (req, res) => {
+//   try {
+//     const { password } = req.body;
+
+//     if (!password) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Password is required to delete account',
+//       });
+//     }
+
+//     const user = await User.findById(req.user._id).select('+password');
+
+//     if (!user) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'User not found',
+//       });
+//     }
+
+//     // Verify password
+//     const isPasswordCorrect = await user.comparePassword(password);
+
+//     if (!isPasswordCorrect) {
+//       return res.status(401).json({
+//         success: false,
+//         message: 'Incorrect password',
+//       });
+//     }
+
+//     // Soft delete (deactivate) instead of hard delete
+//     user.isActive = false;
+//     user.email = `deleted_${Date.now()}_${user.email}`;
+//     user.username = `deleted_${Date.now()}_${user.username}`;
+//     await user.save({ validateBeforeSave: false });
+
+//     console.log(`🗑️ Account deleted: ${req.user.email} (ID: ${req.user._id})`);
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Account deleted successfully',
+//     });
+
+//   } catch (error) {
+//     console.error('❌ Delete account error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error while deleting account',
+//       ...(process.env.NODE_ENV === 'development' && { error: error.message })
+//     });
+//   }
+// };
+
+
+   const deleteAccount = async (req, res) => {
   try {
     const { password } = req.body;
 
@@ -241,9 +295,8 @@ const deleteAccount = async (req, res) => {
       });
     }
 
-    // Verify password
+    // 2. Password check karein
     const isPasswordCorrect = await user.comparePassword(password);
-
     if (!isPasswordCorrect) {
       return res.status(401).json({
         success: false,
@@ -251,25 +304,22 @@ const deleteAccount = async (req, res) => {
       });
     }
 
-    // Soft delete (deactivate) instead of hard delete
-    user.isActive = false;
-    user.email = `deleted_${Date.now()}_${user.email}`;
-    user.username = `deleted_${Date.now()}_${user.username}`;
-    await user.save({ validateBeforeSave: false });
+    await User.findByIdAndDelete(req.user._id);
 
-    console.log(`🗑️ Account deleted: ${req.user.email} (ID: ${req.user._id})`);
+    // console.log mein sirf ID dikhayein privacy ke liye
+    console.log(`🗑️ User ${req.user._id} deleted forever.`);
 
+    // 4. Clean Response
     res.status(200).json({
       success: true,
-      message: 'Account deleted successfully',
+      message: 'Account permanently deleted',
     });
 
   } catch (error) {
     console.error('❌ Delete account error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error while deleting account',
-      ...(process.env.NODE_ENV === 'development' && { error: error.message })
+      message: 'Server error while deleting account'
     });
   }
 };

@@ -2,13 +2,18 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    // Validate MongoDB URI
+  
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI is not defined in environment variables');
     }
 
     // Connect to MongoDB
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    mongoose.set('strictQuery', true);
+
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
 
     // Only show detailed logs in development
     if (process.env.NODE_ENV === 'development') {

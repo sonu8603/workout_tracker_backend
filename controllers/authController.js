@@ -96,8 +96,6 @@ const register = async (req, res) => {
     // Generate token
     const token = generateToken(user._id);
 
-    // Log success (without sensitive data)
-    console.log(`✅ User registered: ${email} (ID: ${user._id})`);
 
     res.status(201).json({
       success: true,
@@ -107,7 +105,7 @@ const register = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Register error:', error);
+    console.error(' Register error:', error);
     
     // Handle duplicate key errors
     if (error.code === 11000) {
@@ -153,12 +151,12 @@ const login = async (req, res) => {
       ]
     }).select('+password');
 
-    console.log('🔍 User found:', user ? `${user.email} (${user.username})` : 'NO USER FOUND');
+    console.log(' User found:', user ? `${user.email} (${user.username})` : 'NO USER FOUND');
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials',
+        message: 'invalid credentials',
       });
     }
 
@@ -244,7 +242,7 @@ const login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Login error:', error);
+    console.error(' Login error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during login',
@@ -424,7 +422,7 @@ const forgotPassword = async (req, res) => {
         throw new Error('Email sending failed');
       }
 
-      console.log(`📧 OTP sent to: ${email}`);
+      console.log(` OTP sent to: ${email}`);
 
       res.status(200).json({
         success: true,
@@ -553,7 +551,7 @@ const resetPassword = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Reset password error:', error);
+    console.error(' Reset password error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error. Please try again later.',
