@@ -15,7 +15,7 @@ const sendEmail = async (options) => {
 
 
     const data = await resend.emails.send({
-      from: 'FitMetrics<noreply@resend.dev>',
+      from: 'FitMetrics <noreply@resend.dev>',
       to: options.email,
       subject: options.subject,
       html: options.html,  
@@ -28,7 +28,7 @@ const sendEmail = async (options) => {
     
     return {
       success: true,
-      messageId: data.id
+      messageId: response.data.id
     };
 
   } catch (error) {
