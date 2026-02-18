@@ -1,54 +1,38 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 const sendEmail = async (options) => {
   try {
     console.log('📧 Attempting to send email to:', options.email);
 
-    // 🔥 UPDATED: Better config for Render
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.EMAIL_PORT) || 587,
-      secure: false, // Use STARTTLS
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-      // 🔥 NEW: Connection settings for cloud environments
-      connectionTimeout: 10000,  // 10 seconds
-      greetingTimeout: 10000,    // 10 seconds
-      socketTimeout: 60000,      // 60 seconds
-      pool: true,                // Use connection pooling
-      maxConnections: 5,         // Max 5 connections
-      // 🔥 NEW: TLS settings
-      tls: {
-        rejectUnauthorized: false,
-        minVersion: 'TLSv1.2'
-      },
-      // 🔥 NEW: Debug logging
-      logger: process.env.NODE_ENV === 'development',
-      debug: process.env.NODE_ENV === 'development'
-    });
+    // Verify API key
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY not configured');
+    }
 
-    const mailOptions = {
-      from: `"FitMetrics" <${process.env.EMAIL_FROM}>`,
+
+    const data = await resend.emails.send({
+      from: 'FitMetrics<noreply@resend.dev>',
       to: options.email,
       subject: options.subject,
-      html: options.message,
+      html: options.html,  
+    });
+
+    console.log('✅ Email sent successfully!');
+    console.log('Email ID:', data?.data?.id);
+
+    console.log('   Sent to:', options.email);
+    
+    return {
+      success: true,
+      messageId: data.id
     };
 
-    console.log('📧 Sending email...');
-    const info = await transporter.sendMail(mailOptions);
-    
-    console.log(' Email sent successfully!');
-    console.log('   Message ID:', info.messageId);
-    console.log('   Response:', info.response);
-    
-    return info;
-
   } catch (error) {
-    console.error('❌ Email send error:', error);
-    console.error('   Code:', error.code);
-    console.error('   Command:', error.command);
+    console.error('❌ Email send error:', error.message);
     throw new Error(`Email failed: ${error.message}`);
   }
 };

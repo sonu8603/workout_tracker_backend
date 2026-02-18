@@ -319,7 +319,7 @@ const server = app.listen(PORT, () => {
   console.log('');
   console.log('='.repeat(50));
   console.log(` Server running on port ${PORT}`);
-  console.log(`📧 Email configured: ${process.env.EMAIL_USER ? ' YES' : ' NO'}`);
+  console.log(`📧 Email configured: ${process.env.RESEND_API_KEY ? ' YES' : ' NO'}`);
   
 });
 
