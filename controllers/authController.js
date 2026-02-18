@@ -418,9 +418,6 @@ const forgotPassword = async (req, res) => {
         html,
       });
 
-     if (!emailSent.success) {
-    throw new Error('Email sending failed');
-}
 
 
       console.log(` OTP sent to: ${email}`);

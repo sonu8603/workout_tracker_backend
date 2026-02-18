@@ -28,7 +28,7 @@ const sendEmail = async (options) => {
     
     return {
       success: true,
-      messageId: response.data.id
+      messageId:data?.id
     };
 
   } catch (error) {
