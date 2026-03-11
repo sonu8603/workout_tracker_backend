@@ -44,16 +44,13 @@ const register = async (req, res) => {
   try {
     // Validate input
     const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array().map(err => ({
-          field: err.path,
-          message: err.msg
-        })),
-      });
-    }
+  if (!errors.isEmpty()) {
+  return res.status(400).json({
+    success: false,
+    message: errors.array()[0].msg, 
+    errors: errors.array()
+  });
+}
 
     let { username, email, password, phone } = req.body;
 
@@ -67,12 +64,13 @@ const register = async (req, res) => {
       $or: [{ email }, { username }] 
     });
 
-    if (userExists) {
-      const field = userExists.email === email ? 'Email' : 'Username';
+   if (userExists) {
+      const isEmail = userExists.email === email;
       return res.status(400).json({
         success: false,
-        message: `${field} already registered`,
-        field: field.toLowerCase()
+        // Specific message for duplicate
+        message: isEmail ? 'Email already registered' : 'Username already taken',
+        field: isEmail ? 'email' : 'username'
       });
     }
 
