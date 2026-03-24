@@ -52,12 +52,11 @@ const register = async (req, res) => {
   });
 }
 
-    let { username, email, password, phone } = req.body;
+    let { username, email, password } = req.body;
 
     // Sanitize inputs
     email = email.trim().toLowerCase();
     username = username.trim();
-    phone = phone ? phone.trim() : '';
 
     // Check for existing user
     const userExists = await User.findOne({ 
@@ -88,7 +87,6 @@ const register = async (req, res) => {
       username,
       email,
       password,
-      phone,
     });
 
     // Generate token

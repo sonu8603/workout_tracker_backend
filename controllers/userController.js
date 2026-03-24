@@ -52,7 +52,7 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    const { username, email, phone, currentPassword, newPassword } = req.body;
+    const { username, email, currentPassword, newPassword } = req.body;
 
     // Find user with password field
     const user = await User.findById(req.user._id).select('+password');

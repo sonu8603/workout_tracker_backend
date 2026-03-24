@@ -30,11 +30,6 @@ const updateProfileValidation = [
     .isEmail()
     .normalizeEmail({ gmail_remove_dots: false })
     .withMessage('Please provide a valid email'),
-  body('phone')
-    .optional()
-    .trim()
-    .matches(/^[0-9]{10}$/)
-    .withMessage('Phone number must be 10 digits'),
   body('currentPassword')
     .optional()
     .notEmpty()
