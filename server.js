@@ -8,6 +8,7 @@ const hpp = require('hpp');
 const compression = require('compression');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const exerciseRoutes = require('./routes/exercise_list');
 
 // Load environment variables
 dotenv.config();
@@ -179,6 +180,7 @@ if (process.env.NODE_ENV === 'development') {
 });
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
+app.use('/api/exercises', exerciseRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
